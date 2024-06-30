@@ -7,7 +7,7 @@ pub struct Config {
 
 pub fn init_config() -> Config {
     Config {
-        host: "localhost".to_string(),
+        host: String::from("localhost"),
         port: 8080,
     }
 }
