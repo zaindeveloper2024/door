@@ -1,5 +1,6 @@
 use std::net::{TcpListener, TcpStream};
-use std::io::{Read, Write};
+use std::io::{BufRead, BufReader, Read, Write};
+use std::collections::HashMap;
 use std::str;
 
 pub struct Server {
@@ -39,11 +40,30 @@ impl Server {
     }
 
     fn handle_client(&self, mut stream: TcpStream) -> std::io::Result<()> {
-        let mut buffer = [0; 1024];
-        stream.read(&mut buffer)?;
+        let mut reader = BufReader::new(&stream);
+        let mut request_line = String::new();
+        reader.read_line(&mut  request_line)?;
+        let headers = self.parse_headers(&mut reader)?;
+        println!("Headers: {:?}", headers);
+
         let response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello, World!";
         stream.write(response.as_bytes())?;
         stream.flush()?;
         Ok(())
+    }
+
+
+    fn parse_headers(&self, reader: &mut BufReader<&TcpStream>) -> std::io::Result<HashMap<String, String>> {
+        let mut headers = HashMap::new();
+        for line in reader.lines() {
+            let line = line?;
+            if line.is_empty() {
+                break;
+            }
+            if let Some((key, value)) = line.split_once(": ") {
+                headers.insert(key.to_string(), value.to_string());
+            }
+        }
+        Ok(headers)
     }
 }
