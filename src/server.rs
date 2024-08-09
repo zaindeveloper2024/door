@@ -1,4 +1,5 @@
 use std::net::{TcpListener, TcpStream};
+use std::io::{Read, Write};
 use std::str;
 
 pub struct Server {
@@ -10,37 +11,39 @@ pub struct ServerConfig {
     pub addr: String,
 }
 
-fn handle_client(stream: TcpStream) {
-    println!("Connection from {}", stream.peer_addr().unwrap());
-}
-
 impl Server {
-    #[inline]
-    pub fn http(addr: &str) -> std::io::Result<Server> {
-        Server::new(addr)
+    pub fn new(addr: &str) -> Self {
+        Server {
+            addr: addr.to_string(),
+        }
     }
 
-    pub fn new(addr: &str) -> std::io::Result<Server> {
-        Self::listen(addr)
-    }
-
-    pub fn listen(addr: &str) -> std::io::Result<Server> {
-        let listener = TcpListener::bind(addr)?;
-        println!("Listening on http://{}", addr);
+    pub fn run(&self) -> std::io::Result<()> {
+        let listener = TcpListener::bind(&self.addr)?;
+        println!("Listening on {}", self.addr);
 
         for stream in listener.incoming() {
             match stream {
                 Ok(stream) => {
-                    handle_client(stream);
+                    if let Err(e) = self.handle_client(stream) {
+                        eprintln!("Error handling client: {}", e);
+                    }
                 }
                 Err(e) => {
-                    eprintln!("Error: {}", e);
+                    eprintln!("Connection failed: {}", e);
                 }
             }
         }
 
-        Ok(Server {
-            addr: addr.to_string(),
-        })
+        Ok(())
+    }
+
+    fn handle_client(&self, mut stream: TcpStream) -> std::io::Result<()> {
+        let mut buffer = [0; 1024];
+        stream.read(&mut buffer)?;
+        let response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello, World!";
+        stream.write(response.as_bytes())?;
+        stream.flush()?;
+        Ok(())
     }
 }

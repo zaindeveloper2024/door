@@ -13,7 +13,8 @@ fn main() {
     let config_ip = ListenAddr::IP(ip_addrs);
     println!("{:?}", config_ip);
 
-    if let Err(e) = Server::http("127.0.0.1:8000") {
+    let server = Server::new("127.0.0.1:8080");
+    if let Err(e) = server.run() {
         eprintln!("Error: {}", e);
     }
 }
